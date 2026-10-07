@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataRecupera · Painel de Inadimplência</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = { theme: { extend: {
+  fontFamily: { sans: ['Inter', 'sans-serif'] },
+  colors: { brand: { 50:'#f0f9ff', 100:'#e0f2fe', 400:'#38bdf8', 500:'#0ea5e9', 600:'#0284c7', 700:'#0369a1', 800:'#075985', 900:'#0c4a6e' } }
+} } };
+</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="text-slate-800 antialiased font-sans flex h-screen overflow-hidden bg-slate-50">
+
+<div id="loading-overlay" class="fixed inset-0 bg-slate-900/80 z-[100] hidden flex-col items-center justify-center text-white">
+  <div class="loader mb-4"></div>
+  <h2 class="text-xl font-bold mb-2">Processando dados…</h2>
+  <p class="text-sm text-slate-300">Bases grandes podem levar alguns segundos.</p>
+</div>
+
+<aside class="w-80 shrink-0 bg-brand-900 text-white flex flex-col h-full shadow-xl z-10">
+  <div class="p-5 flex items-center gap-3 border-b border-brand-800/50">
+    <div class="bg-brand-500 p-2 rounded-lg"><i class="fa-solid fa-chart-pie text-xl"></i></div>
+    <div><h1 class="text-lg font-bold leading-tight">DataRecupera</h1><p class="text-xs text-brand-100/70">Análise de débitos</p></div>
+  </div>
+  <div class="p-5 flex-1 overflow-y-auto filter-scroll">
+    <div class="mb-6 p-4 bg-brand-800/50 rounded-xl border border-brand-700/50">
+      <h2 class="text-xs font-semibold text-brand-100/70 mb-3">Fonte de dados</h2>
+      <label for="csv-file" class="flex items-center justify-center gap-2 w-full bg-brand-500 hover:bg-brand-600 font-medium py-2.5 px-4 rounded-lg cursor-pointer transition-colors text-sm">
+        <i class="fa-solid fa-file-csv"></i> Carregar base (.csv)
+      </label>
+      <input type="file" id="csv-file" accept=".csv,.txt" class="hidden">
+      <p class="text-[11px] text-brand-100/60 mt-2 text-center">Separador ; ou , — acentos detectados automaticamente</p>
+    </div>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-xs font-semibold text-brand-100/70">Filtros <span class="font-normal opacity-70">(vazio = todos)</span></h2>
+      <button id="btn-reset" class="text-xs text-brand-100 hover:text-white underline disabled:opacity-40" disabled>Limpar tudo</button>
+    </div>
+    <div id="filters" class="space-y-4"></div>
+  </div>
+</aside>
+
+<main class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+  <header class="bg-white px-6 py-3 shadow-sm border-b border-slate-200 space-y-3">
+    <div class="flex items-center justify-between gap-4">
+      <div class="min-w-0">
+        <h2 class="text-xl font-bold text-slate-800">Visão geral de inadimplência</h2>
+        <p class="text-sm text-slate-500 truncate" id="subtitle-info">Carregue o arquivo CSV para começar a análise.</p>
+      </div>
+      <button id="btn-export" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shrink-0">
+        <i class="fa-solid fa-download"></i> Exportar filtro
+      </button>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input id="f-search" type="search" placeholder="Buscar matrícula, bairro ou município" class="ctl pl-8 w-72">
+      </div>
+      <label class="flex items-center gap-2 text-slate-600">Dívida mínima (R$)
+        <input id="f-min" type="number" min="0" step="100" placeholder="0" class="ctl w-28">
+      </label>
+      <label class="flex items-center gap-2 text-slate-600">Vencimento
+        <select id="f-days" class="ctl">
+          <option value="0">Qualquer período</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option>
+          <option value="90">Últimos 90 dias</option><option value="120">Últimos 120 dias</option><option value="180">Últimos 180 dias</option><option value="365">Últimos 12 meses</option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2 text-slate-600 cursor-pointer">
+        <input id="f-only" type="checkbox" class="w-4 h-4 accent-brand-500"> Só inadimplentes
+      </label>
+    </div>
+    <div id="chips" class="flex flex-wrap gap-2 empty:hidden"></div>
+  </header>
+
+  <div class="flex-1 overflow-y-auto p-6 relative">
+    <div id="empty-state" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/95">
+      <div class="text-brand-400 text-6xl mb-4"><i class="fa-solid fa-chart-bar"></i></div>
+      <h2 class="text-2xl font-bold text-slate-700 mb-2">Nenhum dado carregado</h2>
+      <p class="text-slate-500 text-center max-w-md">Use o menu lateral para carregar a base de débitos (.csv). Depois, clique nos gráficos para filtrar.</p>
+    </div>
+
+    <section id="kpis" class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6"></section>
+
+    <section class="mb-6">
+      <h3 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i> Insights acionáveis</h3>
+      <div id="insights" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+    </section>
+
+    <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-hand-pointer"></i> Clique em uma barra ou fatia para filtrar; clique de novo para remover.</p>
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div class="glass-card p-5"><h3 class="card-title">Dívida por município (top 10)</h3><div class="h-64"><canvas id="chartCity"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Dívida por bairro (top 10)</h3><div class="h-64"><canvas id="chartBairro"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Dívida por situação da água</h3><div class="h-56"><canvas id="chartStatus"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Dívida por categoria</h3><div class="h-56"><canvas id="chartCategory"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Faixa de atraso × volume (R$)</h3><div class="h-64"><canvas id="chartAging"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Evolução por mês de vencimento</h3><div class="h-64"><canvas id="chartTrend"></canvas></div></div>
+    </section>
+
+    <section class="glass-card overflow-hidden mb-8">
+      <div class="p-4 border-b border-slate-100 bg-slate-50/60 flex justify-between items-center">
+        <h3 class="font-bold text-slate-700">Maiores devedores</h3>
+        <span id="table-info" class="text-xs text-slate-500"></span>
+      </div>
+      <div class="table-container overflow-auto max-h-[28rem]">
+        <table class="w-full text-left text-sm">
+          <thead class="text-xs text-slate-500 bg-slate-50 sticky top-0">
+            <tr id="thead"></tr>
+          </thead>
+          <tbody id="tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
