@@ -66,7 +66,13 @@ tailwind.config = { theme: { extend: {
       <label class="flex items-center gap-2 text-slate-600">Dívida mínima (R$)
         <input id="f-min" type="number" min="0" step="100" placeholder="0" class="ctl w-28">
       </label>
-      <label class="flex items-center gap-2 text-slate-600">Vencimento
+      <label class="flex items-center gap-2 text-slate-600">Contas em atraso ≥
+        <input id="f-bills" type="number" min="0" step="1" placeholder="0" class="ctl w-20">
+      </label>
+      <label class="flex items-center gap-2 text-slate-600" title="Define quantas contas em atraso tornam uma ligação candidata a corte">Critério de corte (contas ≥)
+        <input id="f-cut" type="number" min="1" step="1" value="3" class="ctl w-16">
+      </label>
+      <label class="flex items-center gap-2 text-slate-600">Último vencimento
         <select id="f-days" class="ctl">
           <option value="0">Qualquer período</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option>
           <option value="90">Últimos 90 dias</option><option value="120">Últimos 120 dias</option><option value="180">Últimos 180 dias</option><option value="365">Últimos 12 meses</option>
@@ -86,11 +92,11 @@ tailwind.config = { theme: { extend: {
       <p class="text-slate-500 text-center max-w-md">Use o menu lateral para carregar a base de débitos (.csv). Depois, clique nos gráficos para filtrar.</p>
     </div>
 
-    <section id="kpis" class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6"></section>
+    <section id="kpis" class="grid grid-cols-2 xl:grid-cols-5 gap-4 mb-6"></section>
 
     <section class="mb-6">
       <h3 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i> Insights acionáveis</h3>
-      <div id="insights" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+      <div id="insights" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
     </section>
 
     <p class="text-xs text-slate-500 mb-3"><i class="fa-solid fa-hand-pointer"></i> Clique em uma barra ou fatia para filtrar; clique de novo para remover.</p>
@@ -100,7 +106,7 @@ tailwind.config = { theme: { extend: {
       <div class="glass-card p-5"><h3 class="card-title">Dívida por situação da água</h3><div class="h-56"><canvas id="chartStatus"></canvas></div></div>
       <div class="glass-card p-5"><h3 class="card-title">Dívida por categoria</h3><div class="h-56"><canvas id="chartCategory"></canvas></div></div>
       <div class="glass-card p-5"><h3 class="card-title">Faixa de atraso × volume (R$)</h3><div class="h-64"><canvas id="chartAging"></canvas></div></div>
-      <div class="glass-card p-5"><h3 class="card-title">Evolução por mês de vencimento</h3><div class="h-64"><canvas id="chartTrend"></canvas></div></div>
+      <div class="glass-card p-5"><h3 class="card-title">Idade da dívida (desde o menor vencimento em aberto)</h3><div class="h-64"><canvas id="chartTrend"></canvas></div></div>
     </section>
 
     <section class="glass-card overflow-hidden mb-8">
